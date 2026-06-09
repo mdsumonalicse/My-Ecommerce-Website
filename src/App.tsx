@@ -464,8 +464,12 @@ export default function App() {
 
   // Custom routing wrappers linking state change to URL hash
   const setCurrentPage = (page: Page) => {
-    if (page === 'product-detail' && activeDetailProduct) {
-      window.location.hash = `#/product/${activeDetailProduct.id}`;
+    if (page === 'product-detail') {
+      if (activeDetailProduct) {
+        window.location.hash = `#/product/${activeDetailProduct.id}`;
+      } else {
+        window.location.hash = '#/home';
+      }
     } else {
       window.location.hash = `#/${page}`;
     }
@@ -473,10 +477,8 @@ export default function App() {
 
   const setActiveDetailProduct = (product: Product | null) => {
     if (product) {
-      _setActiveDetailProduct(product);
       window.location.hash = `#/product/${product.id}`;
     } else {
-      _setActiveDetailProduct(null);
       if (window.location.hash.startsWith('#/product/')) {
         window.location.hash = '#/home';
       }
@@ -760,6 +762,14 @@ export default function App() {
     const interval = setInterval(updateTimeLeft, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Dynamics to update document title reactively with the website name config
+  useEffect(() => {
+    const currentName = language === 'en'
+      ? (siteConfigs?.websiteNameEN || 'AmarBazar')
+      : (siteConfigs?.websiteNameBN || 'আমারবাজার');
+    document.title = currentName;
+  }, [siteConfigs, language]);
   
   // Set fallback userRole for system compatibility
   const [userRole, setUserRole] = useState<'user' | 'admin'>(() => {
@@ -1566,7 +1576,6 @@ export default function App() {
                       onQuickView={(prod) => setActiveDetailProduct(prod)}
                       onSelectProduct={(prod) => {
                         setActiveDetailProduct(prod);
-                        setCurrentPage('product-detail');
                         window.scrollTo({ top: 0, behavior: 'instant' });
                       }}
                       isWishlisted={wishlist.includes(p.id)}
@@ -1646,7 +1655,6 @@ export default function App() {
                         onQuickView={(prod) => setActiveDetailProduct(prod)}
                         onSelectProduct={(prod) => {
                           setActiveDetailProduct(prod);
-                          setCurrentPage('product-detail');
                           window.scrollTo({ top: 0, behavior: 'instant' });
                         }}
                         isWishlisted={wishlist.includes(p.id)}
