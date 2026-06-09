@@ -473,6 +473,62 @@ export default function App() {
     }
   }, [toast]);
 
+  // Synchronize state changes to URL hash to enable standard browser navigation
+  useEffect(() => {
+    let targetHash = `#/home`;
+    if (currentPage === 'product-detail' && activeDetailProduct) {
+      targetHash = `#/product/${activeDetailProduct.id}`;
+    } else if (currentPage === 'cart') {
+      targetHash = `#/cart`;
+    } else if (currentPage === 'checkout') {
+      targetHash = `#/checkout`;
+    } else if (currentPage === 'user-dashboard') {
+      targetHash = `#/user-dashboard`;
+    } else if (currentPage === 'admin-dashboard') {
+      targetHash = `#/admin-dashboard`;
+    } else if (currentPage === 'home') {
+      targetHash = `#/home`;
+    }
+
+    if (window.location.hash !== targetHash) {
+      window.history.pushState(null, '', targetHash);
+    }
+  }, [currentPage, activeDetailProduct]);
+
+  // Intercept browser back/forward buttons (popstate) to change app pages instantly
+  useEffect(() => {
+    const handlePopState = () => {
+      const hash = window.location.hash || '#/home';
+      if (hash.startsWith('#/product/')) {
+        const prodId = hash.replace('#/product/', '');
+        const prod = products.find(p => String(p.id) === prodId);
+        if (prod) {
+          setActiveDetailProduct(prod);
+          setCurrentPage('product-detail');
+        } else {
+          setCurrentPage('home');
+        }
+      } else if (hash === '#/checkout') {
+        setCurrentPage('checkout');
+      } else if (hash === '#/cart') {
+        setCurrentPage('cart');
+      } else if (hash === '#/user-dashboard') {
+        setCurrentPage('user-dashboard');
+      } else if (hash === '#/admin-dashboard') {
+        setCurrentPage('admin-dashboard');
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    handlePopState(); // initial route processing
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [products]);
+
   // Countdown clock state for Flash Sale matching
   const [timeLeft, setTimeLeft] = useState({ hrs: 12, mins: 44, secs: 19 });
 

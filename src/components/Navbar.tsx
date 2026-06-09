@@ -314,7 +314,7 @@ export default function Navbar({
       {/* Dynamic Top Bar */}
       {currentPage !== 'admin-dashboard' && (
         <div 
-          className="text-white text-[10px] md:text-xs py-1.5 md:py-2 px-4 md:px-8 flex items-center justify-between font-sans tracking-wide gap-3"
+          className="hidden md:flex text-white text-[10px] md:text-xs py-1.5 md:py-2 px-4 md:px-8 items-center justify-between font-sans tracking-wide gap-3"
           style={{ backgroundColor: siteConfigs.navBgColor || '#0F172A' }}
         >
           <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
@@ -335,7 +335,7 @@ export default function Navbar({
 
       {/* Main Bar */}
       <div 
-        className="backdrop-blur-md shadow-sm border-b border-slate-100 py-4 px-4 md:px-8"
+        className="backdrop-blur-md shadow-sm border-b border-slate-100 pt-9 pb-4 md:py-4 px-4 md:px-8"
         style={{ backgroundColor: siteConfigs.navMainBgColor || '#ffffff' }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
