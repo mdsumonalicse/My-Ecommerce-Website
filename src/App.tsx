@@ -275,6 +275,7 @@ export default function App() {
         newsHeadlinesBN: '🔥 স্পেশাল অফার: টাঙ্গাইল শাড়ি ও স্মার্ট গ্যাজেটে বিশেষ ছাড়! | 🚚 ৫,০০০ টাকার বেশি অর্ডারে ফ্রি ডেলিভারি!',
         logoColor: '#16A34A',
         logoImageUrl: '',
+        logoSize: 48,
         whatsAppNumber: '01712-345678',
         bKashNumber: '01712-345678',
         hotline: '09612-AMARBD',
@@ -609,6 +610,7 @@ export default function App() {
       newsHeadlinesBN: '🔥 স্পেশাল অফার: টাঙ্গাইল শাড়ি ও স্মার্ট গ্যাজেটে বিশেষ ছাড়! | 🚚 ৫,০০০ টাকার বেশি অর্ডারে ফ্রি ডেলিভারি!',
       logoColor: '#16A34A',
       logoImageUrl: '',
+      logoSize: 48,
       whatsAppNumber: '01712-345678',
       bKashNumber: '01712-345678',
       hotline: '09612-AMARBD',
@@ -763,12 +765,22 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Dynamics to update document title reactively with the website name config
+  // Dynamics to update document title reactively with the website name config and update the favicon
   useEffect(() => {
     const currentName = language === 'en'
       ? (siteConfigs?.websiteNameEN || 'AmarBazar')
       : (siteConfigs?.websiteNameBN || 'আমারবাজার');
     document.title = currentName;
+
+    // Update browser tab favicon dynamically based on logo image or fallback
+    const faviconUrl = siteConfigs?.logoImageUrl || 'https://i.postimg.cc/7ZLXY6VF/SMS-SHOPGEN-LOGO-3.png';
+    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+    link.href = faviconUrl;
   }, [siteConfigs, language]);
   
   // Set fallback userRole for system compatibility
@@ -1892,12 +1904,24 @@ export default function App() {
           {/* About & Localized support contacts */}
           <div className="flex flex-col gap-4 text-left">
             <div className="flex items-center gap-2">
-              <div className="bg-[#16A34A] text-white p-2 rounded-lg" style={{ backgroundColor: siteConfigs.logoColor || '#16A34A' }}>
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <span className="text-lg font-bold text-white tracking-tight">
-                {language === 'en' ? (siteConfigs.websiteNameEN || 'AmarBazar') : (siteConfigs.websiteNameBN || 'আমারবাজার')}
-              </span>
+              {siteConfigs.logoImageUrl ? (
+                <img 
+                  src={siteConfigs.logoImageUrl} 
+                  alt="Logo" 
+                  style={{ height: `${Math.min(54, siteConfigs.logoSize || 45)}px` }} 
+                  className="w-auto object-contain shrink-0 rounded-lg animate-fade-in" 
+                  referrerPolicy="no-referrer" 
+                />
+              ) : (
+                <>
+                  <div className="bg-[#16A34A] text-white p-2 rounded-lg" style={{ backgroundColor: siteConfigs.logoColor || '#16A34A' }}>
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <span className="text-lg font-bold text-white tracking-tight">
+                    {language === 'en' ? (siteConfigs.websiteNameEN || 'AmarBazar') : (siteConfigs.websiteNameBN || 'আমারবাজার')}
+                  </span>
+                </>
+              )}
             </div>
             <p className="text-slate-400 font-normal leading-relaxed">
               {language === 'en'

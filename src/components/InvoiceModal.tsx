@@ -270,16 +270,27 @@ export default function InvoiceModal({ order, language, onClose, siteConfigs }: 
           
           {/* Company Brand Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-slate-100 pb-5">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">
-                {t.companyName}
-              </h2>
-              <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-widest block font-sans">
-                {t.verifiedInvoice}
-              </span>
-              <p className="text-[11px] text-slate-500 mt-2 max-w-xs leading-relaxed">
-                {t.companyAddress}
-              </p>
+            <div className="flex items-start gap-3.5">
+              {siteConfigs?.logoImageUrl && (
+                <img 
+                  src={siteConfigs.logoImageUrl} 
+                  alt="Logo" 
+                  style={{ height: `${Math.min(54, siteConfigs.logoSize || 45)}px` }} 
+                  className="w-auto object-contain shrink-0 rounded-lg" 
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">
+                  {t.companyName}
+                </h2>
+                <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-widest block font-sans">
+                  {t.verifiedInvoice}
+                </span>
+                <p className="text-[11px] text-slate-500 mt-2 max-w-xs leading-relaxed">
+                  {t.companyAddress}
+                </p>
+              </div>
             </div>
             
             <div className="sm:text-right text-[11px] text-slate-500 leading-normal">

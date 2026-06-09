@@ -2979,6 +2979,32 @@ export default function AdminDashboard({
                       placeholder="e.g. https://domain.com/logo.png"
                     />
                   </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Logo Height Display (24px - 120px): <span className="text-[#16A34A] font-extrabold">{siteConfigs.logoSize || 48}px</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="range" 
+                        min="24" 
+                        max="120" 
+                        value={siteConfigs.logoSize || 48} 
+                        onChange={(e) => setSiteConfigs({...siteConfigs, logoSize: parseInt(e.target.value) || 48})}
+                        className="w-full h-1 bg-slate-250 rounded-lg appearance-none cursor-pointer accent-[#16A34A]"
+                      />
+                      <input 
+                        type="number" 
+                        min="24" 
+                        max="120" 
+                        value={siteConfigs.logoSize || 48} 
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          setSiteConfigs({...siteConfigs, logoSize: isNaN(val) ? 48 : val});
+                        }}
+                        className="bg-white border border-slate-205 px-2 py-1 rounded-xl text-xs focus:outline-none focus:border-[#16A34A] w-16 text-center font-mono font-bold"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

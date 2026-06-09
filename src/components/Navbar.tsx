@@ -343,15 +343,21 @@ export default function Navbar({
           <div 
             id="brand-logo"
             onClick={handleHomeClick} 
-            className="flex items-center gap-2 cursor-pointer select-none group max-w-[150px] md:max-w-none"
+            className="flex items-center gap-2 cursor-pointer select-none group max-w-[200px] md:max-w-none flex-nowrap shrink-0"
           >
             {siteConfigs.logoImageUrl ? (
-              <div className="flex items-center gap-3">
-                <img src={siteConfigs.logoImageUrl} alt="Logo" className="h-10 w-auto object-contain" referrerPolicy="no-referrer" />
+              <div className="flex items-center gap-2 flex-nowrap shrink-0 min-w-0">
+                <img 
+                  src={siteConfigs.logoImageUrl} 
+                  alt="Logo" 
+                  style={{ height: `${siteConfigs.logoSize || 48}px` }} 
+                  className="w-auto object-contain max-w-[124px] sm:max-w-[200px] shrink-0 animate-fade-in" 
+                  referrerPolicy="no-referrer" 
+                />
                 {currentPage === 'admin-dashboard' && (
-                  <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5 select-none shadow-xs">
+                  <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5 select-none shadow-xs whitespace-nowrap shrink-0">
                     <span className="inline-block w-1.5 bg-emerald-500 h-1.5 rounded-full animate-pulse shrink-0"></span>
-                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider font-mono">
+                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider font-mono whitespace-nowrap">
                        🔒 {language === 'en' ? 'Admin Portal' : 'কন্ট্রোল প্যানেল'}
                     </span>
                   </div>
