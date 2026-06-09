@@ -159,7 +159,18 @@ export default function UserDashboard({
               
               <div className="text-left">
                 <h2 className="text-lg md:text-xl font-extrabold leading-tight block">{userProfile.name}</h2>
-                <span className="text-slate-400 text-xs font-normal font-sans block mt-1">{t.member}: {userProfile.memberSince}</span>
+                {!currentUser ? (
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span id="guest-id-badge" className="bg-[#10B981]/20 text-emerald-300 font-mono text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md inline-block w-fit">
+                      Guest ID: {userProfile.id || 'GUEST-000000'}
+                    </span>
+                    <span className="text-slate-400 text-[11px] font-sans block">
+                      {language === 'en' ? 'Local Browser Profile' : 'ব্রাউজার লোকাল প্রোফাইল'}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 text-xs font-normal font-sans block mt-1">{t.member}: {userProfile.memberSince}</span>
+                )}
                 
                 {/* Specific mobile profile contacts */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-3 text-slate-300 text-[10px] sm:text-xs">

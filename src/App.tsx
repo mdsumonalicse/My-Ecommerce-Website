@@ -458,8 +458,36 @@ export default function App() {
 
   // Storage simulation arrays
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('site_cart_items');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [wishlist, setWishlist] = useState<string[]>(() => {
+    try {
+      const cached = localStorage.getItem('site_wishlist');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Automatically persist cart and wishlist settings inside the local browser storage
+  useEffect(() => {
+    try {
+      localStorage.setItem('site_cart_items', JSON.stringify(cartItems));
+    } catch {}
+  }, [cartItems]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('site_wishlist', JSON.stringify(wishlist));
+    } catch {}
+  }, [wishlist]);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeDetailProduct, _setActiveDetailProduct] = useState<Product | null>(null);
 
@@ -958,18 +986,82 @@ export default function App() {
       } catch {}
     }
   };
+  
+  // Dynamic persistent Guest User ID
+  const [guestUserId] = useState<string>(() => {
+    try {
+      const cached = localStorage.getItem('site_guest_id');
+      if (cached) return cached;
+      const random = `GUEST-${Math.floor(105400 + Math.random() * 888888)}`;
+      localStorage.setItem('site_guest_id', random);
+      return random;
+    } catch {
+      return `GUEST-${Math.floor(105400 + Math.random() * 888888)}`;
+    }
+  });
 
   // Initial guest/anonymous user fallback state profile representation
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: 'Guest Browser',
-    email: 'guest@amarbazar.com',
-    phone: 'Not connected',
-    address: 'Not connected',
-    district: 'Dhaka',
-    rewardPoints: 0,
-    memberSince: 'May 2026',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop'
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    try {
+      const cached = localStorage.getItem('site_guest_profile');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          ...parsed,
+          id: parsed.id || `GUEST-${Math.floor(105400 + Math.random() * 888888)}`
+        };
+      }
+    } catch {}
+    
+    const randomSuffix = Math.floor(105400 + Math.random() * 888888);
+    const generatedId = `GUEST-${randomSuffix}`;
+    try {
+      if (!localStorage.getItem('site_guest_id')) {
+        localStorage.setItem('site_guest_id', generatedId);
+      }
+    } catch {}
+
+    const resolvedId = localStorage.getItem('site_guest_id') || generatedId;
+    
+    const initialProfile: UserProfile = {
+      id: resolvedId,
+      name: `Guest (${resolvedId})`,
+      email: `guest-${randomSuffix}@amarbazar.com`,
+      phone: 'Not connected',
+      address: 'Not connected',
+      district: 'Dhaka',
+      rewardPoints: 0,
+      memberSince: 'May 2026',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop'
+    };
+    try {
+      localStorage.setItem('site_guest_profile', JSON.stringify(initialProfile));
+    } catch {}
+    return initialProfile;
   });
+
+  // Keep guest profile updated reactively in local storage
+  useEffect(() => {
+    try {
+      localStorage.setItem('site_guest_profile', JSON.stringify(userProfile));
+    } catch {}
+  }, [userProfile]);
+
+  // Keep separate local cache for guest orders placed via this browser
+  const [guestOrders, setGuestOrders] = useState<Order[]>(() => {
+    try {
+      const cached = localStorage.getItem('site_guest_orders');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('site_guest_orders', JSON.stringify(guestOrders));
+    } catch {}
+  }, [guestOrders]);
 
   // Dynamic Shipping threshold values (৳5,000 taka free ship)
   const freeShippingThreshold = 5000;
@@ -1027,6 +1119,7 @@ export default function App() {
 
   // Dynamically resolve active userProfile based on active session
   const activeProfile: UserProfile = currentUser ? {
+    id: currentUser.id,
     name: currentUser.name,
     email: currentUser.email,
     phone: currentUser.phone,
@@ -1038,7 +1131,12 @@ export default function App() {
   } : userProfile;
 
   // Dynamically resolve active orders list based on active session
-  const displayedOrders: Order[] = currentUser ? currentUser.orders : orders;
+  const displayedOrders: Order[] = currentUser 
+    ? currentUser.orders 
+    : [
+        ...guestOrders,
+        ...orders.filter(o => o.userId === guestUserId && !guestOrders.some(go => go.id === o.id))
+      ];
 
   // General Shopping Handlers
   const handleAddToCart = (product: Product, qty: number = 1, size?: string, color?: string) => {
@@ -1179,8 +1277,10 @@ export default function App() {
       // Guest orders persist in standard orders cache array fallback and we write to firestore
       const guestOrder: Order = {
         ...newOrder,
-        userId: 'guest'
+        userId: guestUserId
       };
+      setGuestOrders(prev => [guestOrder, ...prev]);
+
       setDoc(doc(db, 'orders', guestOrder.id), guestOrder)
         .catch(e => console.error("Error persisting guest order in Firestore: ", e));
 

@@ -682,7 +682,7 @@ export default function Navbar({
                         <button
                           key="dashboard"
                           id="nav-dashboard-btn"
-                          onClick={onOpenAuth}
+                          onClick={() => setCurrentPage('user-dashboard')}
                           className={`hidden lg:flex items-center gap-1.5 ${navPaddingClass} rounded-lg ${navFontSizeClass} ${navFontFamilyClass} font-bold transition`}
                           style={{
                             color: '#475569',
@@ -1491,13 +1491,7 @@ export default function Navbar({
             {/* Wishlist/Account Tab */}
             <button
               id="mobile-nav-profile"
-              onClick={() => {
-                if (currentUser) {
-                  setCurrentPage('user-dashboard');
-                } else {
-                  onOpenAuth();
-                }
-              }}
+              onClick={() => setCurrentPage('user-dashboard')}
               className={`flex flex-col items-center justify-center gap-1 w-full h-full transition duration-150 relative ${
                 currentPage === 'user-dashboard'
                   ? 'text-emerald-600 font-extrabold'
