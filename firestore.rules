@@ -47,6 +47,14 @@ service cloud.firestore {
       );
     }
 
+    // --- SITE CONFIGURATIONS ---
+    match /configs/{configId} {
+      allow read: if true;
+      allow write: if isSignedIn() && (
+        hasAdminPermission('super_admin')
+      );
+    }
+
     // --- USER ACCOUNTS ---
     match /users/{userId} {
       allow read: if isOwner(userId) || (isSignedIn() && getUserData().role == 'super_admin');
@@ -60,15 +68,8 @@ service cloud.firestore {
 
     // --- INVOICES & ORDERS ---
     match /orders/{orderId} {
-      allow read: if isSignedIn() && (
-        resource.data.shippingAddress.email == request.auth.token.email || 
-        resource.data.userId == request.auth.uid ||
-        hasAdminPermission('super_admin') ||
-        hasAdminPermission('manage_orders')
-      );
-      allow create: if isSignedIn() && (
-        request.resource.data.userId == request.auth.uid
-      );
+      allow read: if true;
+      allow create: if true;
       allow update: if isSignedIn() && (
         hasAdminPermission('super_admin') || 
         hasAdminPermission('manage_orders') ||

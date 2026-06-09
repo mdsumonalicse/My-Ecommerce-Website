@@ -3,7 +3,7 @@ import { ShieldCheck, Truck, RotateCcw, ThumbsUp, Landmark, Smartphone, RefreshC
 import { CartItem, Order, Page, Product, UserProfile, UserAccount, AdminPermission } from './types';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signOut as fbSignOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { initialProducts, categoriesList, featuredBrands, allReviews } from './data/products';
 import { formatBDT } from './utils';
 import Navbar from './components/Navbar';
@@ -112,7 +112,7 @@ const scoreProductForSearch = (p: Product, query: string): number => {
 export default function App() {
   // Common App State configurations
   const [language, setLanguage] = useState<'en' | 'bn'>('en');
-  const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [currentPage, _setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [visibleProductsCount, setVisibleProductsCount] = useState<number>(8);
@@ -245,7 +245,7 @@ export default function App() {
   }, [searchQuery, analyticsSearches]);
 
   // Dynamic CMS state hooks
-  const [siteBanners, setSiteBanners] = useState<any[]>(() => {
+  const [siteBanners, _setSiteBanners] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem('site_banners');
       return stored ? JSON.parse(stored) : [];
@@ -263,7 +263,7 @@ export default function App() {
     }
   });
 
-  const [siteConfigs, setSiteConfigs] = useState<any>(() => {
+  const [siteConfigs, _setSiteConfigs] = useState<any>(() => {
     try {
       const stored = localStorage.getItem('site_configs');
       return stored ? JSON.parse(stored) : {
@@ -299,6 +299,25 @@ export default function App() {
       return {};
     }
   });
+
+  // State wrappers to automatically write config updates to Firestore
+  const setSiteConfigs = (newConfigs: any) => {
+    const resolved = typeof newConfigs === 'function' ? newConfigs(siteConfigs) : newConfigs;
+    _setSiteConfigs(resolved);
+    try {
+      localStorage.setItem('site_configs', JSON.stringify(resolved));
+    } catch {}
+    setDoc(doc(db, 'configs', 'site'), resolved).catch(e => console.error("Error saving configs to Firestore", e));
+  };
+
+  const setSiteBanners = (newBanners: any) => {
+    const resolved = typeof newBanners === 'function' ? newBanners(siteBanners) : newBanners;
+    _setSiteBanners(resolved);
+    try {
+      localStorage.setItem('site_banners', JSON.stringify(resolved));
+    } catch {}
+    setDoc(doc(db, 'configs', 'banners'), { banners: resolved }).catch(e => console.error("Error saving banners to Firestore", e));
+  };
   
   // Dynamic User registration & Session Management list
   const [allAccounts, setAllAccounts] = useState<UserAccount[]>(() => {
@@ -441,7 +460,28 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [activeDetailProduct, setActiveDetailProduct] = useState<Product | null>(null);
+  const [activeDetailProduct, _setActiveDetailProduct] = useState<Product | null>(null);
+
+  // Custom routing wrappers linking state change to URL hash
+  const setCurrentPage = (page: Page) => {
+    if (page === 'product-detail' && activeDetailProduct) {
+      window.location.hash = `#/product/${activeDetailProduct.id}`;
+    } else {
+      window.location.hash = `#/${page}`;
+    }
+  };
+
+  const setActiveDetailProduct = (product: Product | null) => {
+    if (product) {
+      _setActiveDetailProduct(product);
+      window.location.hash = `#/product/${product.id}`;
+    } else {
+      _setActiveDetailProduct(null);
+      if (window.location.hash.startsWith('#/product/')) {
+        window.location.hash = '#/home';
+      }
+    }
+  };
 
   // Custom premium interactive features state declarations
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
@@ -473,61 +513,228 @@ export default function App() {
     }
   }, [toast]);
 
-  // Synchronize state changes to URL hash to enable standard browser navigation
+  // 1. On application start, check and ensure a hash is present immediately page-load replacement
   useEffect(() => {
-    let targetHash = `#/home`;
-    if (currentPage === 'product-detail' && activeDetailProduct) {
-      targetHash = `#/product/${activeDetailProduct.id}`;
-    } else if (currentPage === 'cart') {
-      targetHash = `#/cart`;
-    } else if (currentPage === 'checkout') {
-      targetHash = `#/checkout`;
-    } else if (currentPage === 'user-dashboard') {
-      targetHash = `#/user-dashboard`;
-    } else if (currentPage === 'admin-dashboard') {
-      targetHash = `#/admin-dashboard`;
-    } else if (currentPage === 'home') {
-      targetHash = `#/home`;
+    if (!window.location.hash || window.location.hash === '#/') {
+      window.location.replace('#/home');
     }
+  }, []);
 
-    if (window.location.hash !== targetHash) {
-      window.history.pushState(null, '', targetHash);
-    }
-  }, [currentPage, activeDetailProduct]);
-
-  // Intercept browser back/forward buttons (popstate) to change app pages instantly
+  // 2. Hashchange routing listener - Single source of truth for all page transitions and history pop/push
   useEffect(() => {
-    const handlePopState = () => {
-      const hash = window.location.hash || '#/home';
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      
+      if (!hash || hash === '#/') {
+        window.location.replace('#/home');
+        return;
+      }
+
       if (hash.startsWith('#/product/')) {
         const prodId = hash.replace('#/product/', '');
         const prod = products.find(p => String(p.id) === prodId);
         if (prod) {
-          setActiveDetailProduct(prod);
-          setCurrentPage('product-detail');
+          _setActiveDetailProduct(prod);
+          _setCurrentPage('product-detail');
         } else {
-          setCurrentPage('home');
+          _setCurrentPage('home');
+          _setActiveDetailProduct(null);
         }
       } else if (hash === '#/checkout') {
-        setCurrentPage('checkout');
+        _setCurrentPage('checkout');
+        _setActiveDetailProduct(null);
       } else if (hash === '#/cart') {
-        setCurrentPage('cart');
+        _setCurrentPage('cart');
+        _setActiveDetailProduct(null);
       } else if (hash === '#/user-dashboard') {
-        setCurrentPage('user-dashboard');
+        _setCurrentPage('user-dashboard');
+        _setActiveDetailProduct(null);
       } else if (hash === '#/admin-dashboard') {
-        setCurrentPage('admin-dashboard');
+        _setCurrentPage('admin-dashboard');
+        _setActiveDetailProduct(null);
+      } else if (hash === '#/home') {
+        _setCurrentPage('home');
+        _setActiveDetailProduct(null);
       } else {
-        setCurrentPage('home');
+        _setCurrentPage('home');
+        _setActiveDetailProduct(null);
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    handlePopState(); // initial route processing
+    window.addEventListener('hashchange', handleHashChange);
+    // Direct initial call on load to parse current URL hash
+    handleHashChange();
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handleHashChange);
     };
   }, [products]);
+
+  // 3. Real-time Firestore synchronizer for products
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'products'), async (snapshot) => {
+      if (snapshot.empty) {
+        console.log("Seeding initial products to Firestore...");
+        for (const prod of initialProducts) {
+          try {
+            await setDoc(doc(db, 'products', String(prod.id)), prod);
+          } catch (e) {
+            console.error("Error seeding product", prod.id, e);
+          }
+        }
+      } else {
+        const prodList: Product[] = [];
+        snapshot.forEach((d) => {
+          prodList.push(d.data() as Product);
+        });
+        setProducts(prodList);
+      }
+    }, (error) => {
+      console.error("Firestore products snapshot error: ", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 4. Real-time Firestore synchronizer for site configs
+  useEffect(() => {
+    const defaultConfigs = {
+      websiteNameEN: 'AmarBazar',
+      websiteNameBN: 'আমারবাজার',
+      subtextEN: 'Premium Heritage',
+      subtextBN: 'প্রিমিয়াম অনলাইন শপ',
+      newsHeadlinesEN: '🔥 Flash Deal: Special discounts on traditional sarees and smart gadgets! | 🚚 Free Shipping on orders above ৳5,000!',
+      newsHeadlinesBN: '🔥 স্পেশাল অফার: টাঙ্গাইল শাড়ি ও স্মার্ট গ্যাজেটে বিশেষ ছাড়! | 🚚 ৫,০০০ টাকার বেশি অর্ডারে ফ্রি ডেলিভারি!',
+      logoColor: '#16A34A',
+      logoImageUrl: '',
+      whatsAppNumber: '01712-345678',
+      bKashNumber: '01712-345678',
+      hotline: '09612-AMARBD',
+      navBgColor: '#0F172A',
+      navMainBgColor: '#ffffff',
+      navFontSize: 'sm',
+      navFontFamily: 'sans',
+      navButtonPadding: 'py-2 px-4',
+      navButtonColor: '#16A34A',
+      footerAboutEN: 'AmarBazar is Bangladesh\'s ultimate destination for authentic native traditional wear, pure organic items, and reliable IoT gadgets with robust after-sales warranties.',
+      footerAboutBN: 'আমারবাজার ঐতিহ্য এবং আধুনিকতার এক অপূর্ব সমন্বয়। আমরা সরবরাহ করছি সম্পূর্ণ প্রিমিয়াম রাজশাহী সিল্ক, টাঙ্গাইল শাড়ি, এবং ১০০% দেশি বিশুদ্ধ খাদ্যপণ্য ও গ্যারান্টিযুক্ত গ্যাজেট।',
+      footerAddress: 'Dhaka Head Office: House 14, Gause Pak Avenue, Sector 4, Uttara, Dhaka, Bangladesh',
+      copyrightEN: '© 2026 AmarBazar Ltd. Built with pure state-of-the-art tech.',
+      copyrightBN: '© ২০২৬ আমারবাজার লিমিটেড। সর্বস্বত্ব সংরক্ষিত।',
+      navItems: [
+        { id: 'home', title: 'Home / কালেকশন', visible: true },
+        { id: 'dashboard', title: 'My Orders / কাস্টমার ড্যাশবোর্ড', visible: true },
+        { id: 'admin', title: 'Admin CMS / অ্যাডমিন প্যানেল', visible: true },
+      ]
+    };
+
+    const unsubscribe = onSnapshot(doc(db, 'configs', 'site'), async (docSnap) => {
+      if (!docSnap.exists()) {
+        console.log("Seeding default site configs to Firestore...");
+        try {
+          await setDoc(doc(db, 'configs', 'site'), defaultConfigs);
+        } catch (e) {
+          console.error("Error seeding configs to Firestore", e);
+        }
+      } else {
+        _setSiteConfigs(docSnap.data());
+      }
+    }, (error) => {
+      console.error("Firestore configs snapshot error: ", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 5. Real-time Firestore synchronizer for banners
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, 'configs', 'banners'), async (docSnap) => {
+      if (docSnap.exists()) {
+        _setSiteBanners(docSnap.data().banners || []);
+      }
+    }, (error) => {
+      console.error("Firestore banners snapshot error: ", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 6. Real-time Firestore synchronizer for orders
+  useEffect(() => {
+    const defaultOrders = [
+      {
+        id: 'BD-847291',
+        date: '15 May 2026',
+        items: [
+          {
+            product: initialProducts[1], // Tangail Jamdani
+            quantity: 1,
+            selectedSize: 'Standard 5.5 Yards',
+            selectedColor: 'Crimson Red'
+          }
+        ],
+        total: 12500,
+        status: 'Delivered',
+        paymentMethod: 'bKash',
+        paymentStatus: 'Paid',
+        shippingAddress: {
+          name: 'Tanvir Rahman',
+          phone: '01712-345678',
+          district: 'Dhaka',
+          address: 'House 14, Gause Pak Avenue, Sector 4, Uttara'
+        },
+        trackingStep: 3 // Delivered
+      },
+      {
+        id: 'BD-391827',
+        date: '21 May 2026',
+        items: [
+          {
+            product: initialProducts[2], // Watch
+            quantity: 1,
+            selectedSize: 'Regular 46mm',
+            selectedColor: 'Carbon Black'
+          }
+        ],
+        total: 3350,
+        status: 'Shipped',
+        paymentMethod: 'Nagad',
+        paymentStatus: 'Paid',
+        shippingAddress: {
+          name: 'Tanvir Rahman',
+          phone: '01712-345678',
+          district: 'Dhaka',
+          address: 'House 14, Gause Pak Avenue, Sector 4, Uttara'
+        },
+        trackingStep: 2 // Shipped
+      }
+    ];
+
+    const unsubscribe = onSnapshot(collection(db, 'orders'), async (snapshot) => {
+      if (snapshot.empty) {
+        console.log("Seeding default bootstrap orders to Firestore...");
+        for (const ord of defaultOrders) {
+          try {
+            await setDoc(doc(db, 'orders', ord.id), ord);
+          } catch (e) {
+            console.error("Error seeding order", ord.id, e);
+          }
+        }
+      } else {
+        const orderList: Order[] = [];
+        snapshot.forEach((d) => {
+          orderList.push(d.data() as Order);
+        });
+        // Sort orders so newer ones are on top (by parsing dates or IDs)
+        orderList.sort((a, b) => b.id.localeCompare(a.id));
+        setOrders(orderList);
+      }
+    }, (error) => {
+      console.error("Firestore orders snapshot error: ", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Countdown clock state for Flash Sale matching
   const [timeLeft, setTimeLeft] = useState({ hrs: 12, mins: 44, secs: 19 });
@@ -947,8 +1154,14 @@ export default function App() {
       }).catch(e => console.error("Error updating reward points in Firestore: ", e));
 
     } else {
-      // Guest orders persist in standard orders cache array fallback
-      setOrders(prev => [newOrder, ...prev]);
+      // Guest orders persist in standard orders cache array fallback and we write to firestore
+      const guestOrder: Order = {
+        ...newOrder,
+        userId: 'guest'
+      };
+      setDoc(doc(db, 'orders', guestOrder.id), guestOrder)
+        .catch(e => console.error("Error persisting guest order in Firestore: ", e));
+
       setUserProfile(prev => ({
         ...prev,
         rewardPoints: Math.max(0, prev.rewardPoints - pointsDeduct + earnedPoints)
@@ -979,25 +1192,27 @@ export default function App() {
   };
 
   // Administrator Controls Handlers
-  const handleUpdateOrderStatus = (oId: string, nextStep: number, currentLocation?: string, currentLocationBn?: string) => {
+  const handleUpdateOrderStatus = async (oId: string, nextStep: number, currentLocation?: string, currentLocationBn?: string) => {
     const statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
     
-    // 1. Update fallback guest orders state
-    setOrders(prev =>
-      prev.map(o => {
-        if (o.id === oId) {
-          return {
-            ...o,
-            trackingStep: nextStep,
-            status: statuses[nextStep] as any,
-            paymentStatus: nextStep === 3 ? 'Paid' : o.paymentStatus,
-            currentLocation: currentLocation,
-            currentLocationBn: currentLocationBn
-          };
-        }
-        return o;
-      })
-    );
+    // Find the original order to update in Firestore
+    const originalOrder = orders.find(o => o.id === oId);
+    if (originalOrder) {
+      const updated = {
+        ...originalOrder,
+        trackingStep: nextStep,
+        status: statuses[nextStep] as any,
+        paymentStatus: nextStep === 3 ? 'Paid' : originalOrder.paymentStatus,
+        currentLocation: currentLocation || '',
+        currentLocationBn: currentLocationBn || ''
+      };
+      try {
+        await setDoc(doc(db, 'orders', oId), updated, { merge: true });
+        showToast(language === 'en' ? "Order status updated!" : "অর্ডারের স্ট্যাটাস আপডেট হয়েছে!", "success");
+      } catch (e) {
+        console.error("Firestore order update error: ", e);
+      }
+    }
 
     // 2. Scan and update order status inside matches across all persistent customer accounts too
     setAllAccounts(prev => {
@@ -1037,16 +1252,33 @@ export default function App() {
     });
   };
 
-  const handleCancelOrderStatus = (oId: string) => {
-    setOrders(prev =>
-      prev.map(o => (o.id === oId ? { ...o, status: 'Cancelled' } : o))
-    );
+  const handleCancelOrderStatus = async (oId: string) => {
+    const originalOrder = orders.find(o => o.id === oId);
+    if (originalOrder) {
+      const updated = {
+        ...originalOrder,
+        status: 'Cancelled' as any
+      };
+      try {
+        await setDoc(doc(db, 'orders', oId), updated, { merge: true });
+        showToast(language === 'en' ? "Order cancelled!" : "অর্ডার বাতিল করা হয়েছে!", "info");
+      } catch (e) {
+        console.error("Firestore order cancel error: ", e);
+      }
+    }
   };
 
-  const handleRestockProduct = (pId: string) => {
-    setProducts(prev =>
-      prev.map(p => (p.id === pId ? { ...p, stock: p.stock + 20 } : p))
-    );
+  const handleRestockProduct = async (pId: string) => {
+    const prod = products.find(p => p.id === pId);
+    if (prod) {
+      const updated = { ...prod, stock: prod.stock + 20 };
+      try {
+        await setDoc(doc(db, 'products', String(pId)), updated);
+        showToast(language === 'en' ? "Product restocked successfully!" : "পণ্য রি-স্টক করা হয়েছে!", "success");
+      } catch (e) {
+        console.error("Error restocking", e);
+      }
+    }
   };
 
   const handleUpdateAccountPermissions = (accId: string, permissions: AdminPermission[], role: 'user' | 'admin' | 'super_admin') => {
@@ -1113,18 +1345,34 @@ export default function App() {
     } catch {}
   };
 
-  const handleAddProduct = (newProduct: Product) => {
-    setProducts(prev => [newProduct, ...prev]);
+  const handleAddProduct = async (newProduct: Product) => {
+    try {
+      await setDoc(doc(db, 'products', String(newProduct.id)), newProduct);
+      showToast(language === 'en' ? "Product added successfully!" : "পণ্য সফলভাবে যুক্ত হয়েছে!", "success");
+    } catch (e) {
+      console.error("Error adding product", e);
+      showToast("Error adding product", "info");
+    }
   };
 
-  const handleEditProduct = (updatedProduct: Product) => {
-    setProducts(prev =>
-      prev.map(p => (p.id === updatedProduct.id ? updatedProduct : p))
-    );
+  const handleEditProduct = async (updatedProduct: Product) => {
+    try {
+      await setDoc(doc(db, 'products', String(updatedProduct.id)), updatedProduct);
+      showToast(language === 'en' ? "Product updated successfully!" : "পণ্য সফলভাবে আপডেট করা হয়েছে!", "success");
+    } catch (e) {
+      console.error("Error updating product", e);
+      showToast("Error updating product", "info");
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts(prev => prev.filter(p => p.id !== productId));
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', String(productId)));
+      showToast(language === 'en' ? "Product deleted successfully!" : "পণ্য সফলভাবে ডিলিট করা হয়েছে!", "success");
+    } catch (e) {
+      console.error("Error deleting product", e);
+      showToast("Error deleting product", "info");
+    }
   };
 
   // Computations
