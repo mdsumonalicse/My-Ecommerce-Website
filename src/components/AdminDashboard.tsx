@@ -31,6 +31,7 @@ import {
   Bell,
   Volume2,
   Share2,
+  ChevronRight,
   Printer
 } from 'lucide-react';
 import { Order, Product, UserAccount, AdminPermission } from '../types';
@@ -1042,7 +1043,172 @@ export default function AdminDashboard({
 
   return (
     <div className="bg-[#F8FAFC] py-10 px-4 md:px-8 font-sans">
-      <div className="max-w-6xl mx-auto flex flex-col gap-8">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 w-full">
+        
+        {/* Desktop Sidebar (Left side menubar) */}
+        <div className="hidden lg:flex flex-col w-72 shrink-0 bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs sticky top-24 self-start">
+          <div className="flex items-center gap-3 pb-4 mb-5 border-b border-slate-100">
+            <div className="w-12 h-12 bg-[#16A34A] rounded-2xl flex items-center justify-center text-white font-extrabold text-[#0F172A] relative overflow-hidden shadow-xs shrink-0 animate-fade-in" style={{ backgroundColor: siteConfigs.logoColor || '#16A34A' }}>
+              {siteConfigs.logoImageUrl ? (
+                <img 
+                  src={siteConfigs.logoImageUrl} 
+                  alt="Logo" 
+                  className="w-full h-full object-cover shrink-0" 
+                  referrerPolicy="no-referrer" 
+                />
+              ) : (
+                <span className="text-sm font-black text-white">{siteConfigs.websiteNameEN?.slice(0, 2) || 'AB'}</span>
+              )}
+            </div>
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="font-black text-slate-800 text-sm truncate">
+                {language === 'en' ? (siteConfigs.websiteNameEN || 'AmarBazar') : (siteConfigs.websiteNameBN || 'আমারবাজার')}
+              </span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-mono">
+                {language === 'en' ? 'Console Control' : 'কন্ট্রোল সেন্টার'}
+              </span>
+            </div>
+          </div>
+
+          <nav className="flex flex-col gap-1.5 flex-1 select-none font-sans">
+            {/* Stats Panel */}
+            <button
+              onClick={() => setActiveTab('metrics')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'metrics'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">📊</span>
+                <span>{language === 'en' ? 'Stats panel' : 'পরিসংখ্যান'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'metrics' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+            </button>
+
+            {/* Dispatch */}
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'orders'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">📦</span>
+                <span>{language === 'en' ? 'Dispatch' : 'অর্ডার লিস্ট'}</span>
+              </div>
+              {orders.filter((o: any) => o.status === '0').length > 0 ? (
+                <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">
+                  {orders.filter((o: any) => o.status === '0').length}
+                </span>
+              ) : (
+                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'orders' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+              )}
+            </button>
+
+            {/* Stock Room */}
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'inventory'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">🏭</span>
+                <span>{language === 'en' ? 'Stock Room' : 'ইনভেন্টরি'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'inventory' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+            </button>
+
+            {/* Sales Log */}
+            <button
+              onClick={() => setActiveTab('sales')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'sales'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">📈</span>
+                <span>{language === 'en' ? 'Sales Log' : 'বিক্রয় রসিদ'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'sales' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+            </button>
+
+            {/* Cash Book */}
+            <button
+              onClick={() => setActiveTab('account')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'account'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">🏦</span>
+                <span>{language === 'en' ? 'Cash Book' : 'হিসাব খাতা'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'account' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+            </button>
+
+            {/* Page Settings */}
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`text-[15px] ${activeTab === 'settings' ? 'animate-spin inline-block' : ''}`}>⚙️</span>
+                <span>{language === 'en' ? 'Page Settings' : 'পেজ সেটিংস'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'settings' ? 'text-white translate-x-0.5' : 'text-[#94A3B8] opacity-0'}`} />
+            </button>
+
+            {/* User Access */}
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'users'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">👥</span>
+                <span>{language === 'en' ? 'User Access' : 'অ্যাডমিন পারমিশন'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'users' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+            </button>
+
+            {/* Forecasting */}
+            <button
+              onClick={() => setActiveTab('forecasting')}
+              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between gap-3 leading-none cursor-pointer ${
+                activeTab === 'forecasting'
+                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10 border border-slate-950 translate-x-1'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px]">🔮</span>
+                <span>{language === 'en' ? 'Forecasting' : 'পূর্বাভাস'}</span>
+              </div>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${activeTab === 'forecasting' ? 'text-white translate-x-0.5' : 'text-slate-400 opacity-0'}`} />
+            </button>
+          </nav>
+        </div>
+
+        {/* Desktop / Responsive Content Holder Panel */}
+        <div className="flex-1 min-w-0 flex flex-col gap-8">
         
         {/* Admin Header without duplicate buttons (moved to Navbar) */}
         <div className="flex flex-col gap-6 pb-6 border-b border-slate-200">
@@ -6104,6 +6270,8 @@ export default function AdminDashboard({
           </div>
         </div>
       )}
+
+      </div>
 
       {/* Real-time high-value admin toast overlay */}
       <div 

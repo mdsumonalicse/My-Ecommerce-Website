@@ -773,7 +773,7 @@ export default function App() {
     document.title = currentName;
 
     // Update browser tab favicon dynamically based on logo image or fallback
-    const faviconUrl = siteConfigs?.logoImageUrl || 'https://i.postimg.cc/7ZLXY6VF/SMS-SHOPGEN-LOGO-3.png';
+    const faviconUrl = siteConfigs?.logoImageUrl || 'https://i.postimg.cc/SsmnkXLz/SMS-SHOPGEN-LOGO-3-1.png';
     let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
     if (!link) {
       link = document.createElement('link');

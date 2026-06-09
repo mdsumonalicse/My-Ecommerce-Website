@@ -343,7 +343,7 @@ export default function Navbar({
           <div 
             id="brand-logo"
             onClick={handleHomeClick} 
-            className="flex items-center gap-2 cursor-pointer select-none group max-w-[200px] md:max-w-none flex-nowrap shrink-0"
+            className="flex items-center gap-2 cursor-pointer select-none group max-w-[280px] md:max-w-none flex-nowrap shrink-0"
           >
             {siteConfigs.logoImageUrl ? (
               <div className="flex items-center gap-2 flex-nowrap shrink-0 min-w-0">
@@ -351,7 +351,7 @@ export default function Navbar({
                   src={siteConfigs.logoImageUrl} 
                   alt="Logo" 
                   style={{ height: `${siteConfigs.logoSize || 48}px` }} 
-                  className="w-auto object-contain max-w-[124px] sm:max-w-[200px] shrink-0 animate-fade-in" 
+                  className="w-auto object-contain max-h-[38px] sm:max-h-[44px] md:max-h-none max-w-[124px] sm:max-w-[200px] shrink-0 animate-fade-in" 
                   referrerPolicy="no-referrer" 
                 />
                 {currentPage === 'admin-dashboard' && (
@@ -764,9 +764,29 @@ export default function Navbar({
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-2 select-none">
-              {/* Desktop Admin Tabs directly integrated inside Navbar container */}
-              <div className="hidden lg:flex items-center gap-1.5 bg-slate-100/70 border border-slate-200/85 p-1 rounded-2xl shadow-xs">
+            <div className="flex items-center gap-3 select-none">
+              {/* Language Switcher */}
+              <button
+                id="admin-lang-switcher-btn"
+                onClick={() => setLanguage(language === 'en' ? 'bn' : 'en')}
+                className="hidden lg:flex items-center gap-1.5 text-slate-705 hover:text-[#16A34A] hover:bg-[#F0FDF4] transition text-xs font-bold bg-[#F8FAFC] py-2 px-3.5 rounded-xl border border-slate-200 cursor-pointer select-none"
+              >
+                <span>🌐</span>
+                <span>{language === 'en' ? 'English' : 'বাংলা'}</span>
+              </button>
+
+              {/* Back to Store Action */}
+              <button
+                id="exit-admin-btn"
+                onClick={handleHomeClick}
+                className="flex items-center gap-2 bg-[#F8FAFC] border border-slate-200 hover:bg-[#F0FDF4] hover:text-[#16A34A] hover:border-emerald-250 text-slate-705 py-2 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-2xs select-none uppercase tracking-wider"
+              >
+                <Home className="w-4 h-4 text-[#16A34A]" />
+                <span>{language === 'en' ? 'Back to Store' : 'স্টোরফ্রন্টে ফিরুন'}</span>
+              </button>
+
+              {/* Desktop Admin Tabs directly integrated inside Navbar container - Hidden on Desktop to favor left sidebar menubar */}
+              <div className="hidden">
                 {/* Stats Panel */}
                 <button
                   id="nav-tab-btn-metrics"
