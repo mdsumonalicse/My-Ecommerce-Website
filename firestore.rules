@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global safety net catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ID Format validation
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Owner validation
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Safely retrieve user document from Firestore to resolve roles & permissions
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Verification of specific permission sub-clearance
+    function hasAdminPermission(permission) {
+      return isSignedIn() && (
+        getUserData().role == 'super_admin' || 
+        permission in getUserData().permissions
+      );
+    }
+
+    // --- PRODUCTS CATALOGUE ---
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        hasAdminPermission('super_admin') || 
+        hasAdminPermission('add_products') || 
+        hasAdminPermission('modify_products')
+      );
+      allow update, delete: if isSignedIn() && (
+        hasAdminPermission('super_admin') || 
+        hasAdminPermission('modify_products')
+      );
+    }
+
+    // --- USER ACCOUNTS ---
+    match /users/{userId} {
+      allow read: if isOwner(userId) || (isSignedIn() && getUserData().role == 'super_admin');
+      allow create: if isSignedIn() && isOwner(userId);
+      // Regular users are banned from self-escalation (cannot modify role or permissions fields)
+      allow update: if isOwner(userId) && (
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions'])
+      ) || (isSignedIn() && getUserData().role == 'super_admin');
+      allow delete: if isSignedIn() && getUserData().role == 'super_admin';
+    }
+
+    // --- INVOICES & ORDERS ---
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.shippingAddress.email == request.auth.token.email || 
+        resource.data.userId == request.auth.uid ||
+        hasAdminPermission('super_admin') ||
+        hasAdminPermission('manage_orders')
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        hasAdminPermission('super_admin') || 
+        hasAdminPermission('manage_orders') ||
+        (resource.data.userId == request.auth.uid && request.resource.data.status == 'Cancelled' && resource.data.status == 'Pending')
+      );
+      allow delete: if isSignedIn() && hasAdminPermission('super_admin');
+    }
+  }
+}

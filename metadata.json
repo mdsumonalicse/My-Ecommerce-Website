@@ -1,0 +1,6 @@
+{
+  "name": "Premium Bangladeshi eCommerce",
+  "description": "A high-end, responsive UI/UX design for a premium Bangladeshi multi-category eCommerce platform featuring custom page routing, authentic shopping workflows, interactive checkout, user dashboard, and admin dashboard panels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
